@@ -131,4 +131,36 @@ describe("CHFStablecoinAdminControl", function () {
       );
     });
   });
+
+  describe("Admin Transfer", function () {
+    it("should transfer DEFAULT_ADMIN_ROLE to another user", async function () {
+      const ADMIN_ROLE = await token.DEFAULT_ADMIN_ROLE();
+
+      // Ensure admin has the role, user1 does not
+      expect(await token.hasRole(ADMIN_ROLE, admin.address)).to.be.true;
+      expect(await token.hasRole(ADMIN_ROLE, user1.address)).to.be.false;
+
+      // Transfer admin role to user1
+      await token.connect(admin).transferAdmin(user1.address);
+
+      // Check new admin
+      expect(await token.hasRole(ADMIN_ROLE, user1.address)).to.be.true;
+      expect(await token.hasRole(ADMIN_ROLE, admin.address)).to.be.false;
+    });
+
+    it("should revert if non-admin tries to transfer admin role", async function () {
+      await expect(
+        token.connect(user1).transferAdmin(user2.address)
+      ).to.be.revertedWithCustomError(
+        token,
+        "AccessControlUnauthorizedAccount"
+      );
+    });
+
+    it("should revert when trying to transfer to zero address", async function () {
+      await expect(
+        token.connect(admin).transferAdmin(ethers.ZeroAddress)
+      ).to.be.revertedWith("New admin is the zero address");
+    });
+  });
 });

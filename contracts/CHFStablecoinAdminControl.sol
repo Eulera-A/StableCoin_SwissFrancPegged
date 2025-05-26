@@ -48,4 +48,12 @@ contract CHFStablecoinAdminControl is ERC20Pausable, AccessControl {
     ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(MINTER_ROLE, account);
     }
+
+    function transferAdmin(
+        address newAdmin
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(newAdmin != address(0), "New admin is the zero address");
+        _grantRole(DEFAULT_ADMIN_ROLE, newAdmin);
+        renounceRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
 }

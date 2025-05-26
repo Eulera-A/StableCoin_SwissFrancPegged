@@ -1,13 +1,15 @@
-# Sample Hardhat Project
+things to do:
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+1.  Emit events on role changes and admin transfers
 
-Try running some of the following tasks:
+event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+event MinterRoleGranted(address indexed account);
+event MinterRoleRevoked(address indexed account);
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
-```
+2. Use a proxy pattern (like OpenZeppelin’s UUPS or Transparent Proxy) for upgradeability
+
+Transfer admin role to a Gnosis Safe or multisig on testnet/mainnet
+
+Add supportsInterface override
+
+Add unit tests for edge cases: pausing, role changes, failed burns/mints
