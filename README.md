@@ -13,3 +13,19 @@ Transfer admin role to a Gnosis Safe or multisig on testnet/mainnet
 Add supportsInterface override
 
 Add unit tests for edge cases: pausing, role changes, failed burns/mints
+
+security static analysis
+do install python first:
+check via python3 --version
+and pip3 install
+check via pip3 --version
+
+pip3 install slither-analyzer
+solc-select install 0.8.20 (to match version)
+solc-select use 0.8.20
+
+yarn (to install all dependencies in the package.json)
+
+in package.json, script: defined slither : "slither": "slither ./contracts --solc-remaps '@openzeppelin=node_modules/@openzeppelin @chainlink=node_modules/@chainlink' --exclude naming-convention,external-function,low-level-calls",
+
+and call yarn slither!!!

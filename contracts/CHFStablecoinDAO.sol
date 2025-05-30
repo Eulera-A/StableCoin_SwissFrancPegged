@@ -59,6 +59,9 @@ contract CHFStablecoinDAO {
         address proxyAdminAddress,
         address proxyAddr
     ) {
+        require(tokenAddress != address(0), "Invalid token address");
+        require(proxyAdminAddress != address(0), "Invalid proxy admin address");
+        require(proxyAddr != address(0), "Invalid proxy address");
         token = ICHFStablecoinAdminControlUpgradeable(tokenAddress);
         proxyAdmin = IProxyAdmin(proxyAdminAddress);
         proxyAddress = proxyAddr;
@@ -163,6 +166,8 @@ contract CHFStablecoinDAO {
                 proposal.newImplementation != address(0),
                 "Invalid implementation"
             );
+            // update status before actually doing the effect!
+            proposal.executed = true;
             proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
@@ -178,7 +183,6 @@ contract CHFStablecoinDAO {
             token.unpause();
         }
 
-        proposal.executed = true;
         emit ProposalExecuted(proposalId);
     }
 }

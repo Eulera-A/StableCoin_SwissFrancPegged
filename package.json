@@ -22,6 +22,9 @@
     "@openzeppelin/contracts": "^5.3.0",
     "@openzeppelin/contracts-upgradeable": "^5.3.0"
   },
+  "scripts": {
+    "slither": "slither ./contracts --solc-remaps '@openzeppelin=node_modules/@openzeppelin @chainlink=node_modules/@chainlink' --exclude naming-convention,external-function,low-level-calls"
+  },
   "name": "StableCoin_SwissFranc",
   "version": "1.0.0",
   "main": "index.js",
