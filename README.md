@@ -29,3 +29,19 @@ yarn (to install all dependencies in the package.json)
 in package.json, script: defined slither : "slither": "slither ./contracts --solc-remaps '@openzeppelin=node_modules/@openzeppelin @chainlink=node_modules/@chainlink' --exclude naming-convention,external-function,low-level-calls",
 
 and call yarn slither!!!
+
+the upgrade and dao flow:
+🧪 Deployment & Upgrade Flow (Scripted)
+Here’s a full Hardhat script that will:
+
+Deploy V1 as proxy
+
+Deploy the DAO
+
+Mint tokens to a user
+
+Propose an upgrade to V2
+
+Vote + advance time
+
+Execute upgrade

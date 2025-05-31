@@ -4,24 +4,34 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract CHFStablecoinAdminControlUpgradeable is
+contract CHFStablecoinAdminControlUpgradeableV2 is
     Initializable,
     ERC20Upgradeable,
     ERC20PausableUpgradeable,
     AccessControlUpgradeable
 {
+    // Roles
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    uint256 public constant MAX_SUPPLY = 1000000 * 1e18;
-    string public constant CONTRACT_VERSION = "1.0.0"; // Added versioning
+
+    // Constants
+    uint256 public constant MAX_SUPPLY = 500_000 * 1e18;
+    string public constant CONTRACT_VERSION = "2.0.0";
+
+    // storage upgrade example
+    address public deployingAdmin;
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {
+    constructor() {
         _disableInitializers();
     }
 
     function initialize(address admin) public initializer {
+        require(admin != address(0), "Invalid admin");
+
         __ERC20_init("CHFx", "CHFx");
+        __ERC20_init_unchained("CHFx", "CHFx");
         __Pausable_init(); // This is the missing piece!
 
         __ERC20Pausable_init();
@@ -30,6 +40,10 @@ contract CHFStablecoinAdminControlUpgradeable is
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
     }
+
+    /// @notice Reinitializer for V2 logic if you need to add in a new role or variable
+    //     function initializeV2(address admin) public reinitializer(2) {
+    //     }
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();
@@ -55,7 +69,6 @@ contract CHFStablecoinAdminControlUpgradeable is
         _burn(msg.sender, amount);
     }
 
-    // 🧩 same function signatures from multiple inheritance: override _update hook
     function _update(
         address from,
         address to,
@@ -63,7 +76,4 @@ contract CHFStablecoinAdminControlUpgradeable is
     ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
         super._update(from, to, value);
     }
-
-    // Remove grant/revoke admin and minter functions from here
-    // These should be handled by the DAO contract for governance.
 }

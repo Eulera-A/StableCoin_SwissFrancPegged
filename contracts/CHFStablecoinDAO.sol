@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.22;
 
 interface IProxyAdmin {
     function upgrade(address proxy, address implementation) external;
@@ -15,6 +15,12 @@ interface ICHFStablecoinAdminControlUpgradeable {
     function unpause() external;
 }
 
+interface IERC20 {
+    function balanceOf(address account) external view returns (uint256);
+
+    function totalSupply() external view returns (uint256);
+}
+
 contract CHFStablecoinDAO {
     ICHFStablecoinAdminControlUpgradeable public token;
     IProxyAdmin public proxyAdmin;
@@ -25,6 +31,7 @@ contract CHFStablecoinDAO {
 
     uint256 public proposalCount;
     uint256 public votingDuration = 3 days;
+    uint256 public executionDelay = 1 days;
     uint256 public quorumPercent = 10;
 
     struct Proposal {
@@ -33,12 +40,13 @@ contract CHFStablecoinDAO {
         string description;
         Action action;
         address targetAccount;
-        address newImplementation; // For upgrade proposals
+        address newImplementation;
         bool paused;
         uint256 startTime;
         uint256 yesVotes;
         uint256 noVotes;
         bool executed;
+        uint256 approvedTime;
     }
 
     enum Action {
@@ -79,7 +87,8 @@ contract CHFStablecoinDAO {
         bool support,
         uint256 weight
     );
-    event ProposalExecuted(uint256 id);
+    event ProposalApproved(uint256 proposalId, uint256 approvedTime);
+    event ProposalExecuted(uint256 proposalId);
 
     // ========================
     // Proposal Creation
@@ -101,7 +110,8 @@ contract CHFStablecoinDAO {
             startTime: block.timestamp,
             yesVotes: 0,
             noVotes: 0,
-            executed: false
+            executed: false,
+            approvedTime: 0
         });
         emit ProposalCreated(
             proposalCount,
@@ -111,9 +121,6 @@ contract CHFStablecoinDAO {
         );
         return proposalCount;
     }
-
-    // Existing role and pause/unpause proposals omitted for brevity
-    // (use same `_createProposal` pattern as before)
 
     // ========================
     // Voting
@@ -142,16 +149,16 @@ contract CHFStablecoinDAO {
     }
 
     // ========================
-    // Execute Proposal
+    // Proposal Approval
     // ========================
 
-    function executeProposal(uint256 proposalId) external {
+    function approveProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(
             block.timestamp > proposal.startTime + votingDuration,
             "Voting not ended"
         );
-        require(!proposal.executed, "Already executed");
+        require(proposal.approvedTime == 0, "Already approved");
 
         uint256 totalVotes = proposal.yesVotes + proposal.noVotes;
         uint256 totalSupply = IERC20(address(token)).totalSupply();
@@ -161,13 +168,30 @@ contract CHFStablecoinDAO {
         );
         require(proposal.yesVotes > proposal.noVotes, "Proposal rejected");
 
+        proposal.approvedTime = block.timestamp;
+        emit ProposalApproved(proposalId, proposal.approvedTime);
+    }
+
+    // ========================
+    // Execute Proposal
+    // ========================
+
+    function executeProposal(uint256 proposalId) external {
+        Proposal storage proposal = proposals[proposalId];
+        require(!proposal.executed, "Already executed");
+        require(proposal.approvedTime > 0, "Not approved yet");
+        require(
+            block.timestamp >= proposal.approvedTime + executionDelay,
+            "Execution delay not passed"
+        );
+
+        proposal.executed = true;
+
         if (proposal.action == Action.Upgrade) {
             require(
                 proposal.newImplementation != address(0),
                 "Invalid implementation"
             );
-            // update status before actually doing the effect!
-            proposal.executed = true;
             proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
@@ -185,10 +209,13 @@ contract CHFStablecoinDAO {
 
         emit ProposalExecuted(proposalId);
     }
-}
 
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
+    // ========================
+    // Set Execution Delay
+    // ========================
 
-    function totalSupply() external view returns (uint256);
+    function setExecutionDelay(uint256 newDelay) external {
+        require(newDelay <= 7 days, "Too long");
+        executionDelay = newDelay;
+    }
 }
