@@ -203,9 +203,35 @@ contract CHFStablecoinTestDao {
                 "Invalid implementation"
             );
             emit Log("Trying upgrade");
+            emit Log("Checking ProxyAdmin ownership");
 
-            proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
-            emit Log("Upgrade succeed");
+            address currentOwner = proxyAdmin.owner();
+            require(
+                currentOwner == address(this),
+                "DAO is not the ProxyAdmin owner"
+            );
+            emit Log("DAO is confirmed owner of ProxyAdmin");
+
+            //proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
+
+            try proxyAdmin.upgrade(proxyAddress, proposal.newImplementation) {
+                emit Log("Upgrade succeed");
+            } catch Error(string memory reason) {
+                proposal.executed = false;
+                revert(
+                    string(abi.encodePacked("Proxy upgrade failed: ", reason))
+                );
+            } catch (bytes memory lowLevelData) {
+                proposal.executed = false;
+                revert(
+                    string(
+                        abi.encodePacked(
+                            "Proxy upgrade failed (low-level): ",
+                            string(lowLevelData)
+                        )
+                    )
+                );
+            }
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
         } else if (proposal.action == Action.RevokeMinter) {

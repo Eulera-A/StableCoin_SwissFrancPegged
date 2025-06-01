@@ -2,6 +2,8 @@ const { ethers, upgrades } = require("hardhat");
 const {
   getAdminAddress,
   getImplementationAddress,
+  isTransparentOrUUPSProxy,
+  inferProxyKind,
 } = require("@openzeppelin/upgrades-core");
 
 async function main() {
@@ -28,11 +30,18 @@ async function main() {
   console.log("Proxy Admin Address:", adminAddress);
   console.log("Implementation Address:", implAddress);
 
+  // /////////////////////////Manually upgrade to V2///////////////////////////
+
   // // Step 1-2: Deploy new impl V2:
   // // STEP 2: Deploy V2
   // const V2 = await ethers.getContractFactory("CHFStablecoinTestV2");
 
   // // STEP 1-3: Upgrade proxy to V2
+  // const safeGuardVersionCompatible = await upgrades.validateUpgrade(
+  //   proxyAddress,
+  //   V2
+  // );
+  // console.log(`V2 and V1 compatibility: ${safeGuardVersionCompatible}`);
   // const upgraded = await upgrades.upgradeProxy(proxy, V2);
   // await upgraded.waitForDeployment();
   // console.log("Upgraded proxy now running V2 logic");
@@ -48,7 +57,11 @@ async function main() {
   // const version = await upgradedAsV2.CONTRACT_VERSION();
   // console.log("Contract version after upgrade:", version);
 
-  ////////////////////////////////DAO Process//////////////////////////////
+  // // Check what proxy is:
+  // const kind = await inferProxyKind(ethers.provider, Test_V1);
+  // console.log("Proxy kind:", kind); // Will print: "transparent" or "uups"
+
+  // ////////////////////////////////DAO Process//////////////////////////////
 
   // Step 2: Deploy DAO
   const DAO = await ethers.getContractFactory("CHFStablecoinTestDao");
@@ -76,10 +89,10 @@ async function main() {
   await txTransferOwnership2Dao.wait();
   console.log("Transferred ProxyAdmin ownership to DAO");
 
-  const newOwner = await ProxyAdmin.owner();
-  console.log("Proxy Admin Address (after):", newOwner);
+  const newDaoOwner = await ProxyAdmin.owner();
+  console.log("Proxy Admin Owner Address (after):", newDaoOwner);
 
-  if (newOwner.toLowerCase() !== dao.target.toLowerCase()) {
+  if (newDaoOwner.toLowerCase() !== dao.target.toLowerCase()) {
     throw new Error("Ownership transfer to DAO failed");
   }
 
@@ -142,8 +155,12 @@ async function main() {
   );
   console.log("Approved time:", proposal.approvedTime);
   console.log("Executed:", proposal.executed);
+  console.log(
+    "ProxyAdmin owner before executeProposal:",
+    await ProxyAdmin.owner()
+  );
 
-  await dao.connect(voter).executeProposal(proposalId);
+  await dao.connect(deployer).executeProposal(proposalId);
 
   // Verify new implementation
   const newImpl = await upgrades.erc1967.getImplementationAddress(proxyAddress);
