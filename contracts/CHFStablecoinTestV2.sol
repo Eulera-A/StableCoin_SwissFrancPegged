@@ -1,62 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract CHFStablecoinAdminControlUpgradeable is
+contract CHFStablecoinTestV2 is
     Initializable,
     ERC20Upgradeable,
-    ERC20PausableUpgradeable,
     AccessControlUpgradeable
 {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    uint256 public constant MAX_SUPPLY = 1000000 * 1e18;
-    string public constant CONTRACT_VERSION = "1.0.0"; // Added versioning
+    uint256 public constant MAX_SUPPLY = 500000 * 1e18; // changed max supply by halve
+    string public constant CONTRACT_VERSION = "2.0.0"; // versioning
+    // Added new storage variable here:
+    address public deployingAdmin;
 
-    /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() initializer {
-        _disableInitializers();
-    }
-
+    /// Original initializer — still required!
     function initialize(address admin) public initializer {
-        //__ERC20_init_unchained("CHFx", "CHFx");
-        __Pausable_init();
-        //__Pausable_init_unchained(); // This is the missing piece!
-        __ERC20_init("CHFx", "CHFx");
-
-        __ERC20Pausable_init();
-        //__ERC20Pausable_init_unchained();
+        __ERC20_init("CHF Stablecoin", "CHFS");
         __AccessControl_init();
 
-        //__AccessControl_init __AccessControl_init_unchained();
-
+        require(admin != address(0), "Invalid admin");
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(MINTER_ROLE, admin);
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _pause();
-    }
+    /// @notice Reinitializer for V2 upgrade
+    function initializeV2(address admin) public reinitializer(2) {
+        require(admin != address(0), "Invalid admin");
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _unpause();
+        deployingAdmin = admin;
     }
 
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
-        require(!paused(), "Pausable: paused");
+        //require(!paused(), "Pausable: paused");
         require(totalSupply() + amount <= MAX_SUPPLY, "Cap exceeded");
         _mint(to, amount);
     }
 
     function burn(address from, uint256 amount) external onlyRole(MINTER_ROLE) {
-        require(!paused(), "Pausable: paused");
+        //require(!paused(), "Pausable: paused");
         _burn(from, amount);
     }
 
     function burnMyTokens(uint256 amount) external {
-        require(!paused(), "Pausable: paused");
+        //require(!paused(), "Pausable: paused");
         _burn(msg.sender, amount);
     }
 
@@ -65,7 +54,7 @@ contract CHFStablecoinAdminControlUpgradeable is
         address from,
         address to,
         uint256 value
-    ) internal override(ERC20Upgradeable, ERC20PausableUpgradeable) {
+    ) internal override(ERC20Upgradeable) {
         super._update(from, to, value);
     }
 

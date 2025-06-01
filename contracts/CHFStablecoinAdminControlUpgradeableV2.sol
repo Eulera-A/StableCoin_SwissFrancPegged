@@ -4,7 +4,6 @@ pragma solidity ^0.8.22;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 contract CHFStablecoinAdminControlUpgradeableV2 is
     Initializable,
@@ -27,23 +26,14 @@ contract CHFStablecoinAdminControlUpgradeableV2 is
         _disableInitializers();
     }
 
-    function initialize(address admin) public initializer {
+    /// @notice Reinitializer for V2 upgrade, no more initializer!!!
+    function initializeV2(address admin) public reinitializer(2) {
         require(admin != address(0), "Invalid admin");
 
-        __ERC20_init("CHFx", "CHFx");
-        __ERC20_init_unchained("CHFx", "CHFx");
-        __Pausable_init(); // This is the missing piece!
-
-        __ERC20Pausable_init();
-        __AccessControl_init();
-
-        _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        _grantRole(MINTER_ROLE, admin);
+        deployingAdmin = admin;
+        // Optional: assign new roles, migrate state, etc.
+        // _grantRole(NEW_ROLE, admin);
     }
-
-    /// @notice Reinitializer for V2 logic if you need to add in a new role or variable
-    //     function initializeV2(address admin) public reinitializer(2) {
-    //     }
 
     function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _pause();

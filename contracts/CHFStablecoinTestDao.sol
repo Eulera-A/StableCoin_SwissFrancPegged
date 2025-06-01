@@ -9,7 +9,7 @@ interface IProxyAdmin {
     function owner() external view returns (address);
 }
 
-interface ICHFStablecoinAdminControlUpgradeable {
+interface ICHFStablecoinTestV1 {
     function grantRole(bytes32 role, address account) external;
 
     function revokeRole(bytes32 role, address account) external;
@@ -25,8 +25,8 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract CHFStablecoinDAO {
-    ICHFStablecoinAdminControlUpgradeable public token;
+contract CHFStablecoinTestDao {
+    ICHFStablecoinTestV1 public token;
     IProxyAdmin public proxyAdmin;
     address public proxyAddress;
 
@@ -74,10 +74,13 @@ contract CHFStablecoinDAO {
         require(tokenAddress != address(0), "Invalid token address");
         require(proxyAdminAddress != address(0), "Invalid proxy admin address");
         require(proxyAddr != address(0), "Invalid proxy address");
-        token = ICHFStablecoinAdminControlUpgradeable(tokenAddress);
+        token = ICHFStablecoinTestV1(tokenAddress);
         proxyAdmin = IProxyAdmin(proxyAdminAddress);
         proxyAddress = proxyAddr;
     }
+
+    // debugging event:
+    event Log(string message);
 
     event ProposalCreated(
         uint256 id,
@@ -190,13 +193,19 @@ contract CHFStablecoinDAO {
         );
 
         proposal.executed = true;
+        emit Log("Passed checks");
 
         if (proposal.action == Action.Upgrade) {
+            emit Log("Validating upgrade implementation");
+
             require(
                 proposal.newImplementation != address(0),
                 "Invalid implementation"
             );
+            emit Log("Trying upgrade");
+
             proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
+            emit Log("Upgrade succeed");
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
         } else if (proposal.action == Action.RevokeMinter) {

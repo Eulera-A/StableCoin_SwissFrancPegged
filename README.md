@@ -1,3 +1,10 @@
+Notes:
+ethers V6 deploy:
+contract.waitForDeployment()!
+
+lower versions:
+contract.deploy()!
+
 things to do:
 
 1.  Emit events on role changes and admin transfers
