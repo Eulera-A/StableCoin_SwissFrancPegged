@@ -33,17 +33,17 @@ interface IERC20 {
 }
 
 contract CHFStablecoinDao {
-    ICHFStablecoinDaoUpgradeablePausable public token;
-    IProxyAdmin public proxyAdmin;
-    address public proxyAddress;
+    ICHFStablecoinDaoUpgradeablePausable public immutable token;
+    IProxyAdmin public immutable proxyAdmin;
+    address public immutable proxyAddress;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ADMIN_ROLE = 0x00;
 
     uint256 public proposalCount;
-    uint256 public votingDuration = 3 days;
+    uint256 public constant votingDuration = 3 days;
     uint256 public executionDelay = 1 days;
-    uint256 public quorumPercent = 10;
+    uint256 public constant quorumPercent = 10;
 
     struct Proposal {
         uint256 id;
@@ -206,50 +206,31 @@ contract CHFStablecoinDao {
 
         if (proposal.action == Action.Upgrade) {
             emit Log("Validating upgrade implementation");
-
             require(
                 proposal.newImplementation != address(0),
                 "Invalid implementation"
             );
-            emit Log("Trying upgrade");
+
             emit Log("Checking ProxyAdmin ownership");
-
-            address currentOwner = proxyAdmin.owner();
             require(
-                currentOwner == address(this),
-                "DAO is not the ProxyAdmin owner"
+                proxyAdmin.owner() == address(this),
+                "DAO not ProxyAdmin owner"
             );
-            emit Log("DAO is confirmed owner of ProxyAdmin");
 
-            //proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
+            emit Log("Trying upgrade");
             bytes memory initData = abi.encodeWithSignature(
                 "initializeV2(address)",
-                address(this) // the deployer address
+                address(this)
             );
-            try
-                proxyAdmin.upgradeAndCall(
-                    proxyAddress,
-                    proposal.newImplementation,
-                    initData
-                )
-            {
-                emit Log("Upgrade succeed");
-            } catch Error(string memory reason) {
-                proposal.executed = false;
-                revert(
-                    string(abi.encodePacked("Proxy upgrade failed: ", reason))
-                );
-            } catch (bytes memory lowLevelData) {
-                proposal.executed = false;
-                revert(
-                    string(
-                        abi.encodePacked(
-                            "Proxy upgrade failed (low-level): ",
-                            string(lowLevelData)
-                        )
-                    )
-                );
-            }
+
+            // External call - if it fails, revert the entire tx (proposal.executed stays true)
+            proxyAdmin.upgradeAndCall(
+                proxyAddress,
+                proposal.newImplementation,
+                initData
+            );
+
+            emit Log("Upgrade succeed");
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
         } else if (proposal.action == Action.RevokeMinter) {

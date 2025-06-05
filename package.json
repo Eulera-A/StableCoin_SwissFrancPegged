@@ -15,6 +15,7 @@
     "ethers": "^6.4.0",
     "hardhat": "^2.24.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "solc": "0.8.22",
     "solidity-coverage": "^0.8.0",
     "typechain": "^8.3.0"
   },
