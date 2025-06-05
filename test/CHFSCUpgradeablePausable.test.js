@@ -54,7 +54,7 @@ describe("CHFStablecoinDaoUpgradeablePausable", function () {
     expect(await chfx.balanceOf(user1.address)).to.equal(0);
   });
 
-  it("should allow pausing and block transfers when paused", async function () {
+  it("should allow pausing, and block transfers when paused", async function () {
     const amount = ethers.parseEther("20");
     await chfx.connect(admin).mint(user1.address, amount);
     await chfx.connect(admin).pause();
