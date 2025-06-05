@@ -140,6 +140,9 @@ async function main() {
   await ethers.provider.send("evm_mine", []);
 
   // Step 7: Approve proposal
+  console.log("ProxyAdmin owner:", newDaoOwner);
+  console.log("DAO address:", dao.target);
+
   await dao.connect(deployer).approveProposal(proposalId);
 
   // Simulate delay

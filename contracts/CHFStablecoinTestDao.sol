@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+//import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+
 interface IProxyAdmin {
-    function upgrade(address proxy, address implementation) external;
+    //function upgrade(address proxy, address implementation) external;
+    function upgradeAndCall(
+        address proxy,
+        address implementation,
+        bytes calldata data
+    ) external payable;
 
     function transferOwnership(address newOwner) external;
 
@@ -76,6 +83,8 @@ contract CHFStablecoinTestDao {
         require(proxyAddr != address(0), "Invalid proxy address");
         token = ICHFStablecoinTestV1(tokenAddress);
         proxyAdmin = IProxyAdmin(proxyAdminAddress);
+
+        //proxyAdmin = ProxyAdmin(proxyAdminAddress);// if using the actual contract
         proxyAddress = proxyAddr;
     }
 
@@ -213,8 +222,17 @@ contract CHFStablecoinTestDao {
             emit Log("DAO is confirmed owner of ProxyAdmin");
 
             //proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
-
-            try proxyAdmin.upgrade(proxyAddress, proposal.newImplementation) {
+            bytes memory initData = abi.encodeWithSignature(
+                "initializeV2(address)",
+                address(this) // the deployer address
+            );
+            try
+                proxyAdmin.upgradeAndCall(
+                    proxyAddress,
+                    proposal.newImplementation,
+                    initData
+                )
+            {
                 emit Log("Upgrade succeed");
             } catch Error(string memory reason) {
                 proposal.executed = false;
