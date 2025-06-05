@@ -1,15 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.22;
 
+//import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+
 interface IProxyAdmin {
-    function upgrade(address proxy, address implementation) external;
+    //function upgrade(address proxy, address implementation) external;
+    function upgradeAndCall(
+        address proxy,
+        address implementation,
+        bytes calldata data
+    ) external payable;
 
     function transferOwnership(address newOwner) external;
 
     function owner() external view returns (address);
 }
 
-interface ICHFStablecoinAdminControlUpgradeable {
+interface ICHFStablecoinDaoUpgradeablePausable {
     function grantRole(bytes32 role, address account) external;
 
     function revokeRole(bytes32 role, address account) external;
@@ -25,8 +32,8 @@ interface IERC20 {
     function totalSupply() external view returns (uint256);
 }
 
-contract CHFStablecoinDAO {
-    ICHFStablecoinAdminControlUpgradeable public token;
+contract CHFStablecoinDao {
+    ICHFStablecoinDaoUpgradeablePausable public token;
     IProxyAdmin public proxyAdmin;
     address public proxyAddress;
 
@@ -74,10 +81,15 @@ contract CHFStablecoinDAO {
         require(tokenAddress != address(0), "Invalid token address");
         require(proxyAdminAddress != address(0), "Invalid proxy admin address");
         require(proxyAddr != address(0), "Invalid proxy address");
-        token = ICHFStablecoinAdminControlUpgradeable(tokenAddress);
+        token = ICHFStablecoinDaoUpgradeablePausable(tokenAddress);
         proxyAdmin = IProxyAdmin(proxyAdminAddress);
+
+        //proxyAdmin = ProxyAdmin(proxyAdminAddress);// if using the actual contract
         proxyAddress = proxyAddr;
     }
+
+    // debugging event:
+    event Log(string message);
 
     event ProposalCreated(
         uint256 id,
@@ -190,13 +202,54 @@ contract CHFStablecoinDAO {
         );
 
         proposal.executed = true;
+        emit Log("Passed checks");
 
         if (proposal.action == Action.Upgrade) {
+            emit Log("Validating upgrade implementation");
+
             require(
                 proposal.newImplementation != address(0),
                 "Invalid implementation"
             );
-            proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
+            emit Log("Trying upgrade");
+            emit Log("Checking ProxyAdmin ownership");
+
+            address currentOwner = proxyAdmin.owner();
+            require(
+                currentOwner == address(this),
+                "DAO is not the ProxyAdmin owner"
+            );
+            emit Log("DAO is confirmed owner of ProxyAdmin");
+
+            //proxyAdmin.upgrade(proxyAddress, proposal.newImplementation);
+            bytes memory initData = abi.encodeWithSignature(
+                "initializeV2(address)",
+                address(this) // the deployer address
+            );
+            try
+                proxyAdmin.upgradeAndCall(
+                    proxyAddress,
+                    proposal.newImplementation,
+                    initData
+                )
+            {
+                emit Log("Upgrade succeed");
+            } catch Error(string memory reason) {
+                proposal.executed = false;
+                revert(
+                    string(abi.encodePacked("Proxy upgrade failed: ", reason))
+                );
+            } catch (bytes memory lowLevelData) {
+                proposal.executed = false;
+                revert(
+                    string(
+                        abi.encodePacked(
+                            "Proxy upgrade failed (low-level): ",
+                            string(lowLevelData)
+                        )
+                    )
+                );
+            }
         } else if (proposal.action == Action.GrantMinter) {
             token.grantRole(MINTER_ROLE, proposal.targetAccount);
         } else if (proposal.action == Action.RevokeMinter) {
