@@ -18,7 +18,7 @@ contract CHFStablecoinTestV2 is
 
     /// Original initializer — still required!
     function initialize(address admin) public initializer {
-        __ERC20_init("CHF Stablecoin", "CHFS");
+        __ERC20_init("CHFx", "CHFx");
         __AccessControl_init();
 
         require(admin != address(0), "Invalid admin");

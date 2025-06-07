@@ -43,7 +43,7 @@ contract CHFStablecoinDao {
     uint256 public proposalCount;
     uint256 public constant votingDuration = 3 days;
     uint256 public executionDelay = 1 days;
-    uint256 public constant quorumPercent = 11;
+    uint256 public constant quorumPercent = 10;
 
     struct Proposal {
         uint256 id;

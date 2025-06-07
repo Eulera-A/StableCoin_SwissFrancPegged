@@ -20,8 +20,8 @@ describe("CHFStablecoinDaoUpgradeablePausable", function () {
   });
 
   it("should initialize with correct roles and metadata", async function () {
-    expect(await chfx.name()).to.equal("CHFx");
-    expect(await chfx.symbol()).to.equal("CHFx");
+    expect(await chfx.name()).to.equal("CHFxStableCoin");
+    expect(await chfx.symbol()).to.equal("CHFxSC");
     expect(await chfx.hasRole(await chfx.DEFAULT_ADMIN_ROLE(), admin.address))
       .to.be.true;
     expect(await chfx.hasRole(await chfx.MINTER_ROLE(), admin.address)).to.be

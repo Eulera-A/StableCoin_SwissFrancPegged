@@ -19,8 +19,9 @@ contract CHFStablecoinDaoUpgradeablePausableV2 is
 
     /// Original initializer — still required!
     function initialize(address admin) public initializer {
-        __ERC20_init("CHF Stablecoin", "CHFS");
+        __ERC20_init("CHFxStableCoin", "CHFxSC");
         __ERC20Pausable_init();
+
         __AccessControl_init();
 
         require(admin != address(0), "Invalid admin");

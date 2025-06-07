@@ -21,7 +21,7 @@ contract CHFStablecoinDaoUpgradeablePausable is
     //     }
 
     function initialize(address admin) public initializer {
-        __ERC20_init("CHFx", "CHFx");
+        __ERC20_init("CHFxStableCoin", "CHFxSC");
         __ERC20Pausable_init();
 
         __AccessControl_init();
