@@ -13,7 +13,7 @@ describe("CHFStablecoinDao (integration)", function () {
 
   beforeEach(async function () {
     [owner, daoAdmin, voter1, voter2] = await ethers.getSigners();
-
+    // deploy V1:
     const TokenV1Factory = await ethers.getContractFactory(
       "CHFStablecoinDaoUpgradeablePausable"
     );
@@ -25,10 +25,26 @@ describe("CHFStablecoinDao (integration)", function () {
     const adminAddress = await getAdminAddress(ethers.provider, token.target);
     console.log(`adminAddress is ${adminAddress}`);
 
+    // Deploy Dao
+
     const DaoFactory = await ethers.getContractFactory("CHFStablecoinDao");
     dao = await DaoFactory.deploy(token.target, adminAddress, token.target);
     await dao.waitForDeployment();
     console.log(`dao is deployed`);
+
+    // Grant admin role to DAO BEFORE transferring ProxyAdmin
+    await token.connect(daoAdmin).grantRole(ADMIN_ROLE, await dao.getAddress());
+    console.log(`Granted ADMIN_ROLE to DAO`);
+
+    // Grant MINTER_ROLE to voter1 and mint 100 tokens
+    await token
+      .connect(daoAdmin)
+      .grantRole(MINTER_ROLE, await voter1.getAddress());
+    await token
+      .connect(voter1)
+      .mint(await voter1.getAddress(), ethers.parseEther("100"));
+
+    // get proxyAdmin object
 
     proxyAdmin = await ethers.getContractAt(
       "contracts/CHFStablecoinDao.sol:IProxyAdmin",
@@ -36,15 +52,10 @@ describe("CHFStablecoinDao (integration)", function () {
     );
 
     console.log(`got IProxyAdmin at ${adminAddress}`);
-    await proxyAdmin.transferOwnership(await dao.getAddress());
 
-    // grant voter1 to mint, and mint 100 V1 tokens
-    await token
-      .connect(daoAdmin)
-      .grantRole(MINTER_ROLE, await voter1.getAddress());
-    await token
-      .connect(voter1)
-      .mint(await voter1.getAddress(), ethers.parseEther("100"));
+    // transfer ownership to Dao
+    await proxyAdmin.transferOwnership(await dao.getAddress());
+    console.log(`Transferred proxyAdmin ownership to Dao`);
   });
 
   it("should execute an upgrade proposal end-to-end", async function () {
@@ -89,19 +100,9 @@ describe("CHFStablecoinDao (integration)", function () {
   it("should grant and revoke minter role via proposal", async function () {
     const tx = await dao
       .connect(voter1)
-      .createProposal(
-        0,
-        ethers.ZeroAddress,
-        ethers.ZeroAddress,
-        "Grant minter"
-      );
+      .createProposal(0, voter2.address, ethers.ZeroAddress, "Grant minter");
     const receipt = await tx.wait();
     const proposalId = receipt.logs[0].args[0];
-
-    await dao.proposals(proposalId).then((p) => (p.action = 0));
-    await dao
-      .proposals(proposalId)
-      .then((p) => (p.targetAccount = voter2.address));
 
     await dao.connect(voter1).vote(proposalId, true);
     await ethers.provider.send("evm_increaseTime", [4 * 24 * 60 * 60]);
@@ -117,19 +118,9 @@ describe("CHFStablecoinDao (integration)", function () {
     // Revoke minter role
     const revokeTx = await dao
       .connect(voter1)
-      .createProposal(
-        1,
-        ethers.ZeroAddress,
-        ethers.ZeroAddress,
-        "Revoke minter"
-      );
+      .createProposal(1, voter2.address, ethers.ZeroAddress, "Revoke minter");
     const revokeReceipt = await revokeTx.wait();
     const revokeId = revokeReceipt.logs[0].args[0];
-
-    await dao.proposals(revokeId).then((p) => (p.action = 1));
-    await dao
-      .proposals(revokeId)
-      .then((p) => (p.targetAccount = voter2.address));
 
     await dao.connect(voter1).vote(revokeId, true);
     await ethers.provider.send("evm_increaseTime", [4 * 24 * 60 * 60]);
@@ -149,8 +140,6 @@ describe("CHFStablecoinDao (integration)", function () {
       .createProposal(4, ethers.ZeroAddress, ethers.ZeroAddress, "Pause token");
     const pauseReceipt = await pauseTx.wait();
     const pauseId = pauseReceipt.logs[0].args[0];
-
-    await dao.proposals(pauseId).then((p) => (p.action = 4));
 
     await dao.connect(voter1).vote(pauseId, true);
     await ethers.provider.send("evm_increaseTime", [4 * 24 * 60 * 60]);
@@ -174,12 +163,13 @@ describe("CHFStablecoinDao (integration)", function () {
     const unpauseReceipt = await unpauseTx.wait();
     const unpauseId = unpauseReceipt.logs[0].args[0];
 
-    await dao.proposals(unpauseId).then((p) => (p.action = 5));
-
     await dao.connect(voter1).vote(unpauseId, true);
     await ethers.provider.send("evm_increaseTime", [4 * 24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
     await dao.connect(voter1).approveProposal(unpauseId);
+    // Simulate delay
+    await ethers.provider.send("evm_increaseTime", [24 * 60 * 60 + 1]); // 1 day
+    await ethers.provider.send("evm_mine", []);
     await dao.connect(voter1).executeProposal(unpauseId);
 
     expect(await token.paused()).to.be.false;
@@ -194,7 +184,12 @@ describe("CHFStablecoinDao (integration)", function () {
 
     const tx = await dao
       .connect(voter2)
-      .createProposalUpgrade(await tokenV2Impl.getAddress(), "Low quorum");
+      .createProposal(
+        6,
+        ethers.ZeroAddress,
+        tokenV2Impl.getAddress(),
+        "Low quorum"
+      );
     const receipt = await tx.wait();
     const proposalId = receipt.logs[0].args[0];
 
