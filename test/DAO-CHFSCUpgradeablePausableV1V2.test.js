@@ -182,6 +182,14 @@ describe("CHFStablecoinDao (integration)", function () {
     const tokenV2Impl = await TokenV2Factory.deploy();
     await tokenV2Impl.waitForDeployment();
 
+    // Grant MINTER_ROLE to voter2 and mint 10 tokens
+    await token
+      .connect(daoAdmin)
+      .grantRole(MINTER_ROLE, await voter2.getAddress());
+    await token
+      .connect(voter2)
+      .mint(await voter2.getAddress(), ethers.parseEther("10"));
+
     const tx = await dao
       .connect(voter2)
       .createProposal(
@@ -205,7 +213,12 @@ describe("CHFStablecoinDao (integration)", function () {
   it("should revert if already voted", async function () {
     const tx = await dao
       .connect(voter1)
-      .createProposalUpgrade(ethers.ZeroAddress, "Test double vote");
+      .createProposal(
+        4,
+        ethers.ZeroAddress,
+        ethers.ZeroAddress,
+        "Test double vote"
+      );
     const receipt = await tx.wait();
     const proposalId = receipt.logs[0].args[0];
 
@@ -218,7 +231,12 @@ describe("CHFStablecoinDao (integration)", function () {
   it("should reject invalid proposal execution (not approved)", async function () {
     const tx = await dao
       .connect(voter1)
-      .createProposalUpgrade(ethers.ZeroAddress, "Invalid execution");
+      .createProposal(
+        4,
+        ethers.ZeroAddress,
+        ethers.ZeroAddress,
+        "Invalid execution"
+      );
     const receipt = await tx.wait();
     const proposalId = receipt.logs[0].args[0];
 
@@ -230,19 +248,15 @@ describe("CHFStablecoinDao (integration)", function () {
   it("should reject execution if delay not passed", async function () {
     const tx = await dao
       .connect(voter1)
-      .createProposalUpgrade(ethers.ZeroAddress, "Too soon");
+      .createProposal(4, ethers.ZeroAddress, ethers.ZeroAddress, "Too soon");
     const receipt = await tx.wait();
     const proposalId = receipt.logs[0].args[0];
 
-    await dao.proposals(proposalId).then((p) => (p.action = 4));
     await dao.connect(voter1).vote(proposalId, true);
 
     await ethers.provider.send("evm_increaseTime", [4 * 24 * 60 * 60]);
     await ethers.provider.send("evm_mine", []);
     await dao.connect(voter1).approveProposal(proposalId);
-
-    await ethers.provider.send("evm_increaseTime", [60 * 60 * 12]); // Only 12 hours
-    await ethers.provider.send("evm_mine", []);
 
     await expect(
       dao.connect(voter1).executeProposal(proposalId)
