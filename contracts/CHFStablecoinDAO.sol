@@ -110,7 +110,38 @@ contract CHFStablecoinDao {
     // Proposal Creation
     // ========================
 
-    function createProposalUpgrade(
+    // function createProposalUpgrade(
+    //     address newImpl,
+    //     string memory description
+    // ) external returns (uint256) {
+    //     proposalCount++;
+    //     proposals[proposalCount] = Proposal({
+    //         id: proposalCount,
+    //         proposer: msg.sender,
+    //         description: description,
+    //         action: Action.Upgrade,
+    //         targetAccount: address(0),
+    //         newImplementation: newImpl,
+    //         paused: false,
+    //         startTime: block.timestamp,
+    //         yesVotes: 0,
+    //         noVotes: 0,
+    //         executed: false,
+    //         approvedTime: 0
+    //     });
+    //     emit ProposalCreated(
+    //         proposalCount,
+    //         msg.sender,
+    //         description,
+    //         Action.Upgrade
+    //     );
+    //     return proposalCount;
+    // }
+
+    // for all purpose proposals:
+    function createProposal(
+        Action action,
+        address targetAccount,
         address newImpl,
         string memory description
     ) external returns (uint256) {
@@ -119,8 +150,8 @@ contract CHFStablecoinDao {
             id: proposalCount,
             proposer: msg.sender,
             description: description,
-            action: Action.Upgrade,
-            targetAccount: address(0),
+            action: action,
+            targetAccount: targetAccount,
             newImplementation: newImpl,
             paused: false,
             startTime: block.timestamp,
@@ -129,12 +160,8 @@ contract CHFStablecoinDao {
             executed: false,
             approvedTime: 0
         });
-        emit ProposalCreated(
-            proposalCount,
-            msg.sender,
-            description,
-            Action.Upgrade
-        );
+
+        emit ProposalCreated(proposalCount, msg.sender, description, action);
         return proposalCount;
     }
 

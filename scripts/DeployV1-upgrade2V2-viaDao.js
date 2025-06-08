@@ -115,7 +115,7 @@ async function main() {
   // Step 5: Create proposal
   const tx = await dao
     .connect(voter)
-    .createProposalUpgrade(v2ImplAddress, "Upgrade to V2");
+    .createProposal(6, ethers.ZeroAddress, v2ImplAddress, "Upgrade to V2");
   const receipt = await tx.wait();
   const iface = dao.interface;
   let proposalId;
