@@ -1,54 +1,29 @@
-Notes:
-ethers V6 deploy:
-contract.waitForDeployment()!
+Etherscan Verified Contract addresses:
 
-lower versions:
-contract.deploy()!
+Stablecoin V1 contract:
 
-things to do:
+Successfully verified contract CHFStablecoinDaoUpgradeablePausable on the block explorer.
+https://sepolia.etherscan.io/address/0xD3c44681DfE394B315eb97f3eC3Aee98AF2F5d43#code
 
-1.  Emit events on role changes and admin transfers
+DAO contract with ProxyAdmin Ownership for the following decentralized actions:  
+ GrantMinter,
+RevokeMinter,
+GrantAdmin,
+RevokeAdmin,
+Pause,
+Unpause,
+Upgrade
 
-event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
-event MinterRoleGranted(address indexed account);
-event MinterRoleRevoked(address indexed account);
+Successfully verified contract CHFStablecoinDao on the block explorer.
+https://sepolia.etherscan.io/address/0x2dd5FF300CaA75D0845fAd34639f98c70E238A65#code
 
-2. Use a proxy pattern (like OpenZeppelin’s UUPS or Transparent Proxy) for upgradeability
+V2 upgrade contract: Successfully verified contract CHFStablecoinDaoUpgradeablePausableV2 on the block explorer.
+https://sepolia.etherscan.io/address/0x8EAc4e92ADd925efB73cf29d32f741e4acCe71F4#code
 
-Transfer admin role to a Gnosis Safe or multisig on testnet/mainnet
+V1 tokenImplAddress = "0xD3c44681DfE394B315eb97f3eC3Aee98AF2F5d43"; //
+DAO = "0x2dd5FF300CaA75D0845fAd34639f98c70E238A65"; // DAO
+Token ProxyAddress = "0x910b8b4fCd3F364F6b174EC52c34be948F7d7c72"; //
+ProxyAdmin = 0xba42C6D4F99A5eb5741f6D5CB5498bE9BAB66839
 
-Add supportsInterface override
-
-Add unit tests for edge cases: pausing, role changes, failed burns/mints
-
-security static analysis
-do install python first:
-check via python3 --version
-and pip3 install
-check via pip3 --version
-
-pip3 install slither-analyzer
-solc-select install 0.8.20 (to match version)
-solc-select use 0.8.20
-
-yarn (to install all dependencies in the package.json)
-
-in package.json, script: defined slither : "slither": "slither ./contracts --solc-remaps '@openzeppelin=node_modules/@openzeppelin @chainlink=node_modules/@chainlink' --exclude naming-convention,external-function,low-level-calls",
-
-and call yarn slither!!!
-
-the upgrade and dao flow:
-🧪 Deployment & Upgrade Flow (Scripted)
-Here’s a full Hardhat script that will:
-
-Deploy V1 as proxy
-
-Deploy the DAO
-
-Mint tokens to a user
-
-Propose an upgrade to V2
-
-Vote + advance time
-
-Execute upgrade
+V2 contract:
+https://sepolia.etherscan.io/address/0x8EAc4e92ADd925efB73cf29d32f741e4acCe71F4#code
